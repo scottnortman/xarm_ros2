@@ -93,6 +93,9 @@ set(srv_files
   ${srv_dir}/PlanJoint.srv
   ${srv_dir}/PlanPose.srv
   ${srv_dir}/PlanSingleStraight.srv
+
+  ${srv_dir}/PlanCart.srv
+  ${srv_dir}/PlanPoses.srv
 )
 
 # set(active_files
