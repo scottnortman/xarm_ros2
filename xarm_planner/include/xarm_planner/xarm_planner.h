@@ -55,6 +55,10 @@ namespace xarm_planner
         moveit::planning_interface::MoveGroupInterface::Plan xarm_plan_;
         moveit_msgs::msg::RobotTrajectory trajectory_;
         bool is_trajectory_;
+        double jump_threshold_;
+        double eef_step_;
+        double max_velocity_scaling_factor_;
+        double max_acceleration_scaling_factor_;
     };
 }
 

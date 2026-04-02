@@ -7,12 +7,16 @@
  
 #include "xarm_planner/xarm_planner.h"
 
+namespace
+{
+const double kDefaultJumpThreshold = 0.0;
+const double kDefaultEefStep = 0.005;
+const double kDefaultMaxVelocityScalingFactor = 0.3;
+const double kDefaultMaxAccelerationScalingFactor = 0.1;
+}
+
 namespace xarm_planner
 {
-const double jump_threshold = 0.0;
-const double eef_step = 0.005;
-const double max_velocity_scaling_factor = 0.3;  // [move_group_interface] default is 0.1
-const double max_acceleration_scaling_factor = 0.1;  // [move_group_interface] default is 0.1
 
 XArmPlanner::XArmPlanner(const rclcpp::Node::SharedPtr& node, const std::string& group_name)
     : node_(node)
@@ -29,13 +33,24 @@ XArmPlanner::XArmPlanner(const std::string& group_name)
 void XArmPlanner::init(const std::string& group_name) 
 {
     is_trajectory_ = false;
+    node_->get_parameter_or("jump_threshold", jump_threshold_, kDefaultJumpThreshold);
+    node_->get_parameter_or("eef_step", eef_step_, kDefaultEefStep);
+    node_->get_parameter_or("max_velocity_scaling_factor", max_velocity_scaling_factor_, kDefaultMaxVelocityScalingFactor);
+    node_->get_parameter_or("max_acceleration_scaling_factor", max_acceleration_scaling_factor_, kDefaultMaxAccelerationScalingFactor);
     move_group_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_, group_name);
     RCLCPP_INFO(node_->get_logger(), "Planning frame: %s", move_group_->getPlanningFrame().c_str());
     RCLCPP_INFO(node_->get_logger(), "End effector link: %s", move_group_->getEndEffectorLink().c_str());
     RCLCPP_INFO(node_->get_logger(), "Available Planning Groups:");
     std::copy(move_group_->getJointModelGroupNames().begin(), move_group_->getJointModelGroupNames().end(), std::ostream_iterator<std::string>(std::cout, ", "));
-    move_group_->setMaxVelocityScalingFactor(max_velocity_scaling_factor);
-    move_group_->setMaxAccelerationScalingFactor(max_acceleration_scaling_factor);
+    move_group_->setMaxVelocityScalingFactor(max_velocity_scaling_factor_);
+    move_group_->setMaxAccelerationScalingFactor(max_acceleration_scaling_factor_);
+    RCLCPP_INFO(
+        node_->get_logger(),
+        "Planner timing params: eef_step=%.4f, jump_threshold=%.3f, max_velocity_scaling_factor=%.3f, max_acceleration_scaling_factor=%.3f",
+        eef_step_,
+        jump_threshold_,
+        max_velocity_scaling_factor_,
+        max_acceleration_scaling_factor_);
 }
 
 bool XArmPlanner::planJointTarget(const std::vector<double>& joint_target)
@@ -78,7 +93,7 @@ bool XArmPlanner::planCartesianPath(const std::vector<geometry_msgs::msg::Pose>&
 {   
     // moveit_msgs::msg::RobotTrajectory trajectory;
     
-    double fraction = move_group_->computeCartesianPath(pose_target_vector, eef_step, jump_threshold, trajectory_);
+    double fraction = move_group_->computeCartesianPath(pose_target_vector, eef_step_, jump_threshold_, trajectory_);
     bool success = true;
     if(fraction < 0.9) {
         RCLCPP_ERROR(node_->get_logger(), "planCartesianPath: plan failed, fraction=%lf", fraction);

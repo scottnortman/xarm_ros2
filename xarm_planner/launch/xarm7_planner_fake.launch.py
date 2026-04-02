@@ -16,6 +16,7 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     prefix = LaunchConfiguration('prefix', default='')
     hw_ns = LaunchConfiguration('hw_ns', default='xarm')
+    node_parameters = LaunchConfiguration('node_parameters', default='{}')
     limited = LaunchConfiguration('limited', default=True)
     effort_control = LaunchConfiguration('effort_control', default=False)
     velocity_control = LaunchConfiguration('velocity_control', default=False)
@@ -70,6 +71,7 @@ def generate_launch_description():
             'geometry_mesh_origin_rpy': geometry_mesh_origin_rpy,
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
+            'node_parameters': node_parameters,
         }.items(),
     )
 
@@ -102,6 +104,7 @@ def generate_launch_description():
             'geometry_mesh_origin_rpy': geometry_mesh_origin_rpy,
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
+            'node_parameters': node_parameters,
         }.items(),
     )
     
