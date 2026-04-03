@@ -16,11 +16,15 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     prefix = LaunchConfiguration('prefix', default='')
     hw_ns = LaunchConfiguration('hw_ns', default='xarm')
+    node_parameters = LaunchConfiguration('node_parameters', default='{}')
     limited = LaunchConfiguration('limited', default=True)
     effort_control = LaunchConfiguration('effort_control', default=False)
     velocity_control = LaunchConfiguration('velocity_control', default=False)
     add_gripper = LaunchConfiguration('add_gripper', default=False)
     add_vacuum_gripper = LaunchConfiguration('add_vacuum_gripper', default=False)
+
+    add_realsense_d435i = LaunchConfiguration('add_realsense_d435i', default=False)
+    model1300 = LaunchConfiguration('model1300', default=False)
 
     add_other_geometry = LaunchConfiguration('add_other_geometry', default=False)
     geometry_type = LaunchConfiguration('geometry_type', default='box')
@@ -53,6 +57,8 @@ def generate_launch_description():
             'dof': str(dof),
             'robot_type': robot_type,
             'no_gui_ctrl': 'true',
+            'add_realsense_d435i': add_realsense_d435i,
+            'model1300': model1300,
             'add_other_geometry': add_other_geometry,
             'geometry_type': geometry_type,
             'geometry_mass': geometry_mass,
@@ -65,6 +71,7 @@ def generate_launch_description():
             'geometry_mesh_origin_rpy': geometry_mesh_origin_rpy,
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
+            'node_parameters': node_parameters,
         }.items(),
     )
 
@@ -83,6 +90,8 @@ def generate_launch_description():
             'dof': str(dof),
             'robot_type': robot_type,
             'ros2_control_plugin': 'uf_robot_hardware/UFRobotFakeSystemHardware',
+            'add_realsense_d435i': add_realsense_d435i,
+            'model1300': model1300,
             'add_other_geometry': add_other_geometry,
             'geometry_type': geometry_type,
             'geometry_mass': geometry_mass,
@@ -95,6 +104,7 @@ def generate_launch_description():
             'geometry_mesh_origin_rpy': geometry_mesh_origin_rpy,
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
+            'node_parameters': node_parameters,
         }.items(),
     )
     

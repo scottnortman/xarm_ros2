@@ -14,6 +14,10 @@
 #include <xarm_msgs/srv/plan_exec.hpp>
 #include <xarm_msgs/srv/plan_single_straight.hpp>
 
+//Added SDN
+#include <xarm_msgs/srv/plan_cart.hpp>
+#include <xarm_msgs/srv/plan_poses.hpp>
+
 #define BIND_CLS_CB(func) std::bind(func, this, std::placeholders::_1, std::placeholders::_2)
 
 class XArmPlannerRunner
@@ -26,6 +30,11 @@ private:
     bool do_pose_plan(const std::shared_ptr<xarm_msgs::srv::PlanPose::Request> req, std::shared_ptr<xarm_msgs::srv::PlanPose::Response> res);
     bool do_joint_plan(const std::shared_ptr<xarm_msgs::srv::PlanJoint::Request> req, std::shared_ptr<xarm_msgs::srv::PlanJoint::Response> res);
     bool exec_plan_cb(const std::shared_ptr<xarm_msgs::srv::PlanExec::Request> req, std::shared_ptr<xarm_msgs::srv::PlanExec::Response> res);
+
+    //Added SDN
+    bool do_cart_plan(const std::shared_ptr<xarm_msgs::srv::PlanCart::Request> req, std::shared_ptr<xarm_msgs::srv::PlanCart::Response> res);
+    bool do_poses_plan(const std::shared_ptr<xarm_msgs::srv::PlanPoses::Request> req, std::shared_ptr<xarm_msgs::srv::PlanPoses::Response> res);
+
     
 private:
     rclcpp::Node::SharedPtr node_;
@@ -34,9 +43,17 @@ private:
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr exec_plan_sub_;
 
     rclcpp::Service<xarm_msgs::srv::PlanExec>::SharedPtr exec_plan_server_;
+
     rclcpp::Service<xarm_msgs::srv::PlanPose>::SharedPtr pose_plan_server_;
     rclcpp::Service<xarm_msgs::srv::PlanJoint>::SharedPtr joint_plan_server_;
+
     rclcpp::Service<xarm_msgs::srv::PlanSingleStraight>::SharedPtr single_straight_plan_server_;
+
+    //Added SDN
+    rclcpp::Service<xarm_msgs::srv::PlanCart>::SharedPtr cart_plan_server_;
+    rclcpp::Service<xarm_msgs::srv::PlanPoses>::SharedPtr poses_plan_server_;
+
+
 };
 
 XArmPlannerRunner::XArmPlannerRunner(rclcpp::Node::SharedPtr& node)
@@ -53,8 +70,14 @@ XArmPlannerRunner::XArmPlannerRunner(rclcpp::Node::SharedPtr& node)
     xarm_planner_ = std::make_shared<xarm_planner::XArmPlanner>(group_name);
 
     exec_plan_server_ = node_->create_service<xarm_msgs::srv::PlanExec>("xarm_exec_plan", BIND_CLS_CB(&XArmPlannerRunner::exec_plan_cb));
+    
     pose_plan_server_ = node_->create_service<xarm_msgs::srv::PlanPose>("xarm_pose_plan", BIND_CLS_CB(&XArmPlannerRunner::do_pose_plan));
     joint_plan_server_ = node_->create_service<xarm_msgs::srv::PlanJoint>("xarm_joint_plan", BIND_CLS_CB(&XArmPlannerRunner::do_joint_plan));
+
+    //Added 2023-5-20 per previous modifications for restful.
+    cart_plan_server_ = node_->create_service<xarm_msgs::srv::PlanCart>("xarm_cart_plan", BIND_CLS_CB(&XArmPlannerRunner::do_cart_plan));
+    poses_plan_server_ = node->create_service<xarm_msgs::srv::PlanPoses>("xarm_poses_plan", BIND_CLS_CB(&XArmPlannerRunner::do_poses_plan));
+
 }
 
 bool XArmPlannerRunner::do_pose_plan(const std::shared_ptr<xarm_msgs::srv::PlanPose::Request> req, std::shared_ptr<xarm_msgs::srv::PlanPose::Response> res)
@@ -71,12 +94,37 @@ bool XArmPlannerRunner::do_joint_plan(const std::shared_ptr<xarm_msgs::srv::Plan
     return success;
 }
 
+//Added SDN
+bool XArmPlannerRunner::do_cart_plan(const std::shared_ptr<xarm_msgs::srv::PlanCart::Request>req, std::shared_ptr<xarm_msgs::srv::PlanCart::Response> res)
+{
+    bool success = xarm_planner_->planCartesianPath(req->targets);
+    res->success = success;
+    return success;
+
+}//end do_cart_plan
+
+//Added SDN
+bool XArmPlannerRunner::do_poses_plan(const std::shared_ptr<xarm_msgs::srv::PlanPoses::Request> req, std::shared_ptr<xarm_msgs::srv::PlanPoses::Response> res)
+{
+    bool success = xarm_planner_->planPoseTargets(req->targets);
+    res->success = success;
+
+    return success;
+
+}//end do_poses_plan
+
+
+
 bool XArmPlannerRunner::exec_plan_cb(const std::shared_ptr<xarm_msgs::srv::PlanExec::Request> req, std::shared_ptr<xarm_msgs::srv::PlanExec::Response> res)
 {
     bool success = xarm_planner_->executePath(req->wait);
     res->success = success;
     return success;
 }
+
+
+
+
 
 void exit_sig_handler(int signum)
 {
