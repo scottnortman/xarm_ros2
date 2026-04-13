@@ -13,6 +13,7 @@
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/robot_trajectory/robot_trajectory.h>
 
 #include <moveit_msgs/msg/display_robot_state.hpp>
 #include <moveit_msgs/msg/display_trajectory.hpp>
@@ -55,6 +56,7 @@ namespace xarm_planner
         moveit::planning_interface::MoveGroupInterface::Plan xarm_plan_;
         moveit_msgs::msg::RobotTrajectory trajectory_;
         bool is_trajectory_;
+        std::string group_name_;
         double jump_threshold_;
         double eef_step_;
         double max_velocity_scaling_factor_;
