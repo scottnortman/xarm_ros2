@@ -6,6 +6,8 @@
  ============================================================================*/
  
 #include "xarm_planner/xarm_planner.h"
+#include <chrono>
+#include <moveit/trajectory_processing/time_optimal_trajectory_generation.h>
 
 namespace
 {
@@ -13,6 +15,11 @@ const double kDefaultJumpThreshold = 0.0;
 const double kDefaultEefStep = 0.005;
 const double kDefaultMaxVelocityScalingFactor = 0.3;
 const double kDefaultMaxAccelerationScalingFactor = 0.1;
+
+double duration_seconds(const builtin_interfaces::msg::Duration& duration)
+{
+    return static_cast<double>(duration.sec) + static_cast<double>(duration.nanosec) * 1e-9;
+}
 }
 
 namespace xarm_planner
@@ -33,6 +40,7 @@ XArmPlanner::XArmPlanner(const std::string& group_name)
 void XArmPlanner::init(const std::string& group_name) 
 {
     is_trajectory_ = false;
+    group_name_ = group_name;
     node_->get_parameter_or("jump_threshold", jump_threshold_, kDefaultJumpThreshold);
     node_->get_parameter_or("eef_step", eef_step_, kDefaultEefStep);
     node_->get_parameter_or("max_velocity_scaling_factor", max_velocity_scaling_factor_, kDefaultMaxVelocityScalingFactor);
@@ -91,29 +99,100 @@ bool XArmPlanner::planPoseTargets(const std::vector<geometry_msgs::msg::Pose>& p
 
 bool XArmPlanner::planCartesianPath(const std::vector<geometry_msgs::msg::Pose>& pose_target_vector)
 {   
-    // moveit_msgs::msg::RobotTrajectory trajectory;
-    
     double fraction = move_group_->computeCartesianPath(pose_target_vector, eef_step_, jump_threshold_, trajectory_);
-    bool success = true;
     if(fraction < 0.9) {
         RCLCPP_ERROR(node_->get_logger(), "planCartesianPath: plan failed, fraction=%lf", fraction);
         return false;
     }
+
+    moveit::core::RobotState reference_state(move_group_->getRobotModel());
+    bool have_reference_state = false;
+    bool using_fallback_state = false;
+
+    if (const auto current_state = move_group_->getCurrentState(1.0)) {
+        reference_state = *current_state;
+        have_reference_state = true;
+    } else if (!trajectory_.joint_trajectory.joint_names.empty() &&
+               !trajectory_.joint_trajectory.points.empty() &&
+               trajectory_.joint_trajectory.points.front().positions.size() == trajectory_.joint_trajectory.joint_names.size()) {
+        reference_state.setToDefaultValues();
+        reference_state.setVariablePositions(
+            trajectory_.joint_trajectory.joint_names,
+            trajectory_.joint_trajectory.points.front().positions
+        );
+        reference_state.update();
+        have_reference_state = true;
+        using_fallback_state = true;
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "planCartesianPath: current-state monitor did not provide a fresh state; using the first Cartesian trajectory point as the retiming reference state"
+        );
+    }
+
+    bool retimed = false;
+    if (have_reference_state) {
+        robot_trajectory::RobotTrajectory robot_trajectory(move_group_->getRobotModel(), group_name_);
+        robot_trajectory.setRobotTrajectoryMsg(reference_state, trajectory_);
+
+        trajectory_processing::TimeOptimalTrajectoryGeneration totg;
+        retimed = totg.computeTimeStamps(
+            robot_trajectory,
+            max_velocity_scaling_factor_,
+            max_acceleration_scaling_factor_
+        );
+        if (retimed) {
+            robot_trajectory.getRobotTrajectoryMsg(trajectory_);
+        } else {
+            RCLCPP_WARN(node_->get_logger(), "planCartesianPath: trajectory retiming failed; executing unretimed Cartesian trajectory");
+        }
+    } else {
+        RCLCPP_WARN(
+            node_->get_logger(),
+            "planCartesianPath: unable to obtain any reference state for retiming; executing unretimed Cartesian trajectory"
+        );
+    }
+
+    const auto point_count = trajectory_.joint_trajectory.points.size();
+    const double planned_duration = point_count > 0
+        ? duration_seconds(trajectory_.joint_trajectory.points.back().time_from_start)
+        : 0.0;
+    RCLCPP_INFO(
+        node_->get_logger(),
+        "planCartesianPath: fraction=%.3f, input_waypoints=%zu, trajectory_points=%zu, planned_duration=%.3f s, retimed=%d, fallback_reference=%d, max_velocity_scaling_factor=%.3f, max_acceleration_scaling_factor=%.3f",
+        fraction,
+        pose_target_vector.size(),
+        point_count,
+        planned_duration,
+        retimed,
+        using_fallback_state,
+        max_velocity_scaling_factor_,
+        max_acceleration_scaling_factor_
+    );
+
     is_trajectory_ = true;
-    // https://github.com/ros-planning/moveit2/commit/8bfe782d6254997d185644fa3eb358d2b79d69b2
-    // (struct Plan) trajectory_ => trajectory
-    // xarm_plan_.trajectory_ = trajectory;
     return true;
 }
 
 bool XArmPlanner::executePath(bool wait)
 {
+    const auto start = std::chrono::steady_clock::now();
     moveit::core::MoveItErrorCode code;
     if (wait)
         code = is_trajectory_ ? move_group_->execute(trajectory_) : move_group_->execute(xarm_plan_);
     else
         code =  is_trajectory_ ? move_group_->asyncExecute(trajectory_) : move_group_->asyncExecute(xarm_plan_);
     bool success = (code == moveit::core::MoveItErrorCode::SUCCESS);
+    const auto elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    if (wait) {
+        RCLCPP_INFO(
+            node_->get_logger(),
+            "executePath: wait=%d, is_trajectory=%d, wall_time=%.3f s, success=%d",
+            wait,
+            is_trajectory_,
+            elapsed,
+            success
+        );
+    }
     if (!success)
         RCLCPP_ERROR(node_->get_logger(), "executePath: execute failed, wait=%d, MoveItErrorCode=%d", wait, code.val);
     return success;
