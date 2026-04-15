@@ -17,6 +17,7 @@ def generate_launch_description():
     prefix = LaunchConfiguration('prefix', default='')
     hw_ns = LaunchConfiguration('hw_ns', default='xarm')
     node_parameters = LaunchConfiguration('node_parameters', default='{}')
+    launch_rviz = LaunchConfiguration('launch_rviz', default=True)
     limited = LaunchConfiguration('limited', default=True)
     effort_control = LaunchConfiguration('effort_control', default=False)
     velocity_control = LaunchConfiguration('velocity_control', default=False)
@@ -57,6 +58,7 @@ def generate_launch_description():
             'dof': str(dof),
             'robot_type': robot_type,
             'no_gui_ctrl': 'true',
+            'launch_rviz': launch_rviz,
             'add_realsense_d435i': add_realsense_d435i,
             'model1300': model1300,
             'add_other_geometry': add_other_geometry,

@@ -25,6 +25,7 @@ def launch_setup(context, *args, **kwargs):
     dof = LaunchConfiguration('dof', default=7)
     robot_type = LaunchConfiguration('robot_type', default='xarm')
     no_gui_ctrl = LaunchConfiguration('no_gui_ctrl', default=False)
+    launch_rviz = LaunchConfiguration('launch_rviz', default=True)
 
     add_realsense_d435i = LaunchConfiguration('add_realsense_d435i', default=False)
     add_d435i_links = LaunchConfiguration('add_d435i_links', default=True)
@@ -100,6 +101,7 @@ def launch_setup(context, *args, **kwargs):
             'dof': dof,
             'robot_type': robot_type,
             'no_gui_ctrl': no_gui_ctrl,
+            'launch_rviz': launch_rviz,
             'ros2_control_plugin': ros2_control_plugin,
             'controllers_name': controllers_name,
             'moveit_controller_manager_key': moveit_controller_manager_key,
