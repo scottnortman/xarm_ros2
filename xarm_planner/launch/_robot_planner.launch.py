@@ -31,6 +31,7 @@ def launch_setup(context, *args, **kwargs):
     node_executable = LaunchConfiguration('node_executable', default='xarm_planner_node')
     node_name = LaunchConfiguration('node_name', default=node_executable)
     node_parameters = LaunchConfiguration('node_parameters', default={})
+    use_sim_time = LaunchConfiguration('use_sim_time', default=False)
     use_gripper_node = LaunchConfiguration('use_gripper_node', default=add_gripper)
 
     add_realsense_d435i = LaunchConfiguration('add_realsense_d435i', default=False)
@@ -120,7 +121,8 @@ def launch_setup(context, *args, **kwargs):
             robot_description_parameters,
             {
                 'robot_type': robot_type,
-                'dof': dof
+                'dof': dof,
+                'use_sim_time': use_sim_time,
             },
             xarm_planner_parameters,
         ],
@@ -138,6 +140,7 @@ def launch_setup(context, *args, **kwargs):
             parameters=[
                 robot_description_parameters,
                 {'PLANNING_GROUP': 'xarm_gripper'},
+                {'use_sim_time': use_sim_time},
             ],
         )
         nodes.append(xarm_gripper_planner_node)

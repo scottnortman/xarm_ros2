@@ -46,12 +46,17 @@ void XArmPlanner::init(const std::string& group_name)
     node_->get_parameter_or("max_velocity_scaling_factor", max_velocity_scaling_factor_, kDefaultMaxVelocityScalingFactor);
     node_->get_parameter_or("max_acceleration_scaling_factor", max_acceleration_scaling_factor_, kDefaultMaxAccelerationScalingFactor);
     move_group_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(node_, group_name);
+    const bool state_monitor_ready = move_group_->startStateMonitor(1.0);
     RCLCPP_INFO(node_->get_logger(), "Planning frame: %s", move_group_->getPlanningFrame().c_str());
     RCLCPP_INFO(node_->get_logger(), "End effector link: %s", move_group_->getEndEffectorLink().c_str());
     RCLCPP_INFO(node_->get_logger(), "Available Planning Groups:");
     std::copy(move_group_->getJointModelGroupNames().begin(), move_group_->getJointModelGroupNames().end(), std::ostream_iterator<std::string>(std::cout, ", "));
     move_group_->setMaxVelocityScalingFactor(max_velocity_scaling_factor_);
     move_group_->setMaxAccelerationScalingFactor(max_acceleration_scaling_factor_);
+    if (state_monitor_ready)
+        RCLCPP_INFO(node_->get_logger(), "Current-state monitor primed before planning.");
+    else
+        RCLCPP_WARN(node_->get_logger(), "Current-state monitor did not prime within 1.0 s; Cartesian retiming may fall back.");
     RCLCPP_INFO(
         node_->get_logger(),
         "Planner timing params: eef_step=%.4f, jump_threshold=%.3f, max_velocity_scaling_factor=%.3f, max_acceleration_scaling_factor=%.3f",
@@ -98,23 +103,33 @@ bool XArmPlanner::planPoseTargets(const std::vector<geometry_msgs::msg::Pose>& p
 }
 
 bool XArmPlanner::planCartesianPath(const std::vector<geometry_msgs::msg::Pose>& pose_target_vector)
-{   
+{
+    moveit::core::RobotState reference_state(move_group_->getRobotModel());
+    bool have_reference_state = false;
+    bool using_fallback_state = false;
+
+    // Use the latest available robot state for retiming instead of waiting for
+    // a state newer than "now". In the Webots fake stack, /joint_states can
+    // legitimately lag the planner request time by a few milliseconds after the
+    // arm settles, which makes MoveIt reject an otherwise usable state.
+    if (const auto current_state = move_group_->getCurrentState(0.0)) {
+        reference_state = *current_state;
+        have_reference_state = true;
+        move_group_->setStartState(reference_state);
+    } else {
+        move_group_->setStartStateToCurrentState();
+    }
+
     double fraction = move_group_->computeCartesianPath(pose_target_vector, eef_step_, jump_threshold_, trajectory_);
     if(fraction < 0.9) {
         RCLCPP_ERROR(node_->get_logger(), "planCartesianPath: plan failed, fraction=%lf", fraction);
         return false;
     }
 
-    moveit::core::RobotState reference_state(move_group_->getRobotModel());
-    bool have_reference_state = false;
-    bool using_fallback_state = false;
-
-    if (const auto current_state = move_group_->getCurrentState(1.0)) {
-        reference_state = *current_state;
-        have_reference_state = true;
-    } else if (!trajectory_.joint_trajectory.joint_names.empty() &&
-               !trajectory_.joint_trajectory.points.empty() &&
-               trajectory_.joint_trajectory.points.front().positions.size() == trajectory_.joint_trajectory.joint_names.size()) {
+    if (!have_reference_state &&
+        !trajectory_.joint_trajectory.joint_names.empty() &&
+        !trajectory_.joint_trajectory.points.empty() &&
+        trajectory_.joint_trajectory.points.front().positions.size() == trajectory_.joint_trajectory.joint_names.size()) {
         reference_state.setToDefaultValues();
         reference_state.setVariablePositions(
             trajectory_.joint_trajectory.joint_names,
@@ -125,7 +140,7 @@ bool XArmPlanner::planCartesianPath(const std::vector<geometry_msgs::msg::Pose>&
         using_fallback_state = true;
         RCLCPP_WARN(
             node_->get_logger(),
-            "planCartesianPath: current-state monitor did not provide a fresh state; using the first Cartesian trajectory point as the retiming reference state"
+            "planCartesianPath: current-state monitor did not provide a usable start state; using the first Cartesian trajectory point as both the start-state and retiming reference"
         );
     }
 

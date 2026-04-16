@@ -17,7 +17,9 @@ def generate_launch_description():
     prefix = LaunchConfiguration('prefix', default='')
     hw_ns = LaunchConfiguration('hw_ns', default='xarm')
     node_parameters = LaunchConfiguration('node_parameters', default='{}')
+    use_sim_time = LaunchConfiguration('use_sim_time', default=False)
     launch_rviz = LaunchConfiguration('launch_rviz', default=True)
+    add_joint_state_publisher = LaunchConfiguration('add_joint_state_publisher', default='true')
     limited = LaunchConfiguration('limited', default=True)
     effort_control = LaunchConfiguration('effort_control', default=False)
     velocity_control = LaunchConfiguration('velocity_control', default=False)
@@ -74,6 +76,8 @@ def generate_launch_description():
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
             'node_parameters': node_parameters,
+            'use_sim_time': use_sim_time,
+            'add_joint_state_publisher': add_joint_state_publisher,
         }.items(),
     )
 
@@ -107,6 +111,7 @@ def generate_launch_description():
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
             'node_parameters': node_parameters,
+            'use_sim_time': use_sim_time,
         }.items(),
     )
     

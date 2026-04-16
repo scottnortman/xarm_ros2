@@ -31,6 +31,7 @@ def launch_setup(context, *args, **kwargs):
     dof = LaunchConfiguration('dof', default=7)
     robot_type = LaunchConfiguration('robot_type', default='xarm')
     ros2_control_plugin = LaunchConfiguration('ros2_control_plugin', default='uf_robot_hardware/UFRobotSystemHardware')
+    use_sim_time = LaunchConfiguration('use_sim_time', default=False)
     xacro_file = LaunchConfiguration('xacro_file', default=PathJoinSubstitution([FindPackageShare('xarm_description'), 'urdf', 'xarm_device.urdf.xacro']))
 
     add_realsense_d435i = LaunchConfiguration('add_realsense_d435i', default=False)
@@ -128,6 +129,7 @@ def launch_setup(context, *args, **kwargs):
             robot_description,
             ros2_control_params,
             robot_params,
+            {'use_sim_time': use_sim_time},
         ],
         output='screen',
     )

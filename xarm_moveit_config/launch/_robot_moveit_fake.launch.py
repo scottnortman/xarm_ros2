@@ -8,6 +8,7 @@
 
 from launch import LaunchDescription
 from launch.actions import OpaqueFunction, IncludeLaunchDescription, DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
@@ -26,6 +27,8 @@ def launch_setup(context, *args, **kwargs):
     robot_type = LaunchConfiguration('robot_type', default='xarm')
     no_gui_ctrl = LaunchConfiguration('no_gui_ctrl', default=False)
     launch_rviz = LaunchConfiguration('launch_rviz', default=True)
+    use_sim_time = LaunchConfiguration('use_sim_time', default=False)
+    add_joint_state_publisher = LaunchConfiguration('add_joint_state_publisher', default=True)
 
     add_realsense_d435i = LaunchConfiguration('add_realsense_d435i', default=False)
     add_d435i_links = LaunchConfiguration('add_d435i_links', default=True)
@@ -82,6 +85,7 @@ def launch_setup(context, *args, **kwargs):
             'geometry_mesh_origin_rpy': geometry_mesh_origin_rpy,
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
+            'use_sim_time': use_sim_time,
         }.items(),
     )
 
@@ -121,6 +125,7 @@ def launch_setup(context, *args, **kwargs):
             'geometry_mesh_origin_rpy': geometry_mesh_origin_rpy,
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
+            'use_sim_time': use_sim_time,
         }.items(),
     )
 
@@ -139,8 +144,9 @@ def launch_setup(context, *args, **kwargs):
         executable='joint_state_publisher',
         name='joint_state_publisher',
         output='screen',
-        parameters=[{'source_list': ['joint_states']}],
+        parameters=[{'source_list': ['joint_states']}, {'use_sim_time': use_sim_time}],
         remappings=remappings,
+        condition=IfCondition(add_joint_state_publisher),
     )
 
     # ros2 control launch
@@ -173,6 +179,7 @@ def launch_setup(context, *args, **kwargs):
             'geometry_mesh_origin_rpy': geometry_mesh_origin_rpy,
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
+            'use_sim_time': use_sim_time,
         }.items(),
     )
 
