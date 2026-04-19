@@ -68,6 +68,9 @@ void XArmPlanner::init(const std::string& group_name)
 
 bool XArmPlanner::planJointTarget(const std::vector<double>& joint_target)
 {
+    move_group_->stop();
+    move_group_->clearPoseTargets();
+    move_group_->setStartStateToCurrentState();
     bool success = move_group_->setJointValueTarget(joint_target);
     if (!success)
         RCLCPP_WARN(node_->get_logger(), "setJointValueTarget: out of bounds");
@@ -80,6 +83,9 @@ bool XArmPlanner::planJointTarget(const std::vector<double>& joint_target)
 
 bool XArmPlanner::planPoseTarget(const geometry_msgs::msg::Pose& pose_target)
 {
+    move_group_->stop();
+    move_group_->clearPoseTargets();
+    move_group_->setStartStateToCurrentState();
     bool success = move_group_->setPoseTarget(pose_target);
     if (!success)
         RCLCPP_WARN(node_->get_logger(), "setPoseTarget: out of bounds");
@@ -92,6 +98,9 @@ bool XArmPlanner::planPoseTarget(const geometry_msgs::msg::Pose& pose_target)
 
 bool XArmPlanner::planPoseTargets(const std::vector<geometry_msgs::msg::Pose>& pose_target_vector)
 {
+    move_group_->stop();
+    move_group_->clearPoseTargets();
+    move_group_->setStartStateToCurrentState();
     bool success = move_group_->setPoseTargets(pose_target_vector);
     if (!success)
         RCLCPP_WARN(node_->get_logger(), "setPoseTargets: out of bounds");
@@ -104,6 +113,7 @@ bool XArmPlanner::planPoseTargets(const std::vector<geometry_msgs::msg::Pose>& p
 
 bool XArmPlanner::planCartesianPath(const std::vector<geometry_msgs::msg::Pose>& pose_target_vector)
 {
+    move_group_->stop();
     moveit::core::RobotState reference_state(move_group_->getRobotModel());
     bool have_reference_state = false;
     bool using_fallback_state = false;

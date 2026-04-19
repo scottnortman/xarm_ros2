@@ -31,6 +31,7 @@ def launch_setup(context, *args, **kwargs):
     robot_type = LaunchConfiguration('robot_type', default='xarm')
     no_gui_ctrl = LaunchConfiguration('no_gui_ctrl', default=False)
     launch_rviz = LaunchConfiguration('launch_rviz', default=True)
+    allowed_start_tolerance = LaunchConfiguration('allowed_start_tolerance', default=0.01)
     ros2_control_plugin = LaunchConfiguration('ros2_control_plugin', default='uf_robot_hardware/UFRobotFakeSystemHardware')
     controllers_name = LaunchConfiguration('controllers_name', default='fake_controllers')
     moveit_controller_manager_key = LaunchConfiguration('moveit_controller_manager_key', default='moveit_fake_controller_manager')
@@ -155,7 +156,7 @@ def launch_setup(context, *args, **kwargs):
         'moveit_manage_controllers': True,
         'trajectory_execution.allowed_execution_duration_scaling': 1.2,
         'trajectory_execution.allowed_goal_duration_margin': 0.5,
-        'trajectory_execution.allowed_start_tolerance': 0.01,
+        'trajectory_execution.allowed_start_tolerance': allowed_start_tolerance,
         'trajectory_execution.execution_duration_monitoring': False
     }
 

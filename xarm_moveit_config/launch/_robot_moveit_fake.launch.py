@@ -29,6 +29,7 @@ def launch_setup(context, *args, **kwargs):
     launch_rviz = LaunchConfiguration('launch_rviz', default=True)
     use_sim_time = LaunchConfiguration('use_sim_time', default=False)
     add_joint_state_publisher = LaunchConfiguration('add_joint_state_publisher', default=True)
+    allowed_start_tolerance = LaunchConfiguration('allowed_start_tolerance', default=0.01)
 
     add_realsense_d435i = LaunchConfiguration('add_realsense_d435i', default=False)
     add_d435i_links = LaunchConfiguration('add_d435i_links', default=True)
@@ -85,6 +86,7 @@ def launch_setup(context, *args, **kwargs):
             'geometry_mesh_origin_rpy': geometry_mesh_origin_rpy,
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
+            'allowed_start_tolerance': allowed_start_tolerance,
             'use_sim_time': use_sim_time,
         }.items(),
     )
@@ -125,6 +127,7 @@ def launch_setup(context, *args, **kwargs):
             'geometry_mesh_origin_rpy': geometry_mesh_origin_rpy,
             'geometry_mesh_tcp_xyz': geometry_mesh_tcp_xyz,
             'geometry_mesh_tcp_rpy': geometry_mesh_tcp_rpy,
+            'allowed_start_tolerance': allowed_start_tolerance,
             'use_sim_time': use_sim_time,
         }.items(),
     )
